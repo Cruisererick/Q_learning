@@ -163,7 +163,8 @@ public abstract class QLearner extends Player
             if (f == maxF)
             {
                 ties += 1.0;
-                if (rand.nextDouble() < (1.0 / ties)) {
+                if (rand.nextDouble() < (1.0 / ties)) 
+                {
                     maxF = f;
                     maxAction = action;
                 }

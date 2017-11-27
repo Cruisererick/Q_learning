@@ -1,10 +1,5 @@
 package skeleton;
 
-
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import util.Percept;
 import util.QLearner;
 import util.State;
@@ -20,7 +15,7 @@ import util.State;
  */
 public class MyQLearner extends QLearner
 {
-    private static final boolean DEBUG = false;
+    //private static final boolean DEBUG = false;
     private static final double NE = 100.0;
     private State s;
     private String a;
@@ -39,7 +34,7 @@ public class MyQLearner extends QLearner
         a = null;
         r = Double.NEGATIVE_INFINITY;
     }
-
+    /*
     protected Double get_max(State state, Percept percept)
     {
     	double max = Double.NEGATIVE_INFINITY;
@@ -68,23 +63,31 @@ public class MyQLearner extends QLearner
 		}
 		return max;
     	
-    }
+    }*/
     
     @Override
     protected double explorationFunction(State state, String action)
     {
-        return Double.NEGATIVE_INFINITY;
+    	Double u = value(getQ(),state,action);
+    	Double n = value(getN(),state,action);
+    	Double reward = f(u, n);
+        return reward;
     }
     
     
     protected double f(Double u, Double n) 
     {
-		if (Double.isNaN(u) || n < NE) {
+		if (n < NE) 
+		{
 			return Double.POSITIVE_INFINITY;
 		}
-		return u;		
+		else
+		{
+			return u;	
+		}
 	}
     
+    /*
     protected String myExplorationFunction(State state, Percept percept)
     {
     	List<String> actions = percept.actions();
@@ -120,15 +123,7 @@ public class MyQLearner extends QLearner
     	}
     	return action;
     }
-    
-  
-    
-    
-    protected double alpha(double Nsa, double gamma, double s_reward)
-    {
-    	
-    	return 1/Nsa;	  	
-    }
+    */
     
     /**
      * Plays the game using a Q-Learning agent.
@@ -141,88 +136,41 @@ public class MyQLearner extends QLearner
     {
     	
     	State s_prime = new MyState(percept);
-    	double reward = percept.score();
+    	double rewardPrime = percept.current().reward();
+    	double Gamma = percept.gamma();
     	
     	
     	if (s_prime.isTerminal())
-    	{   
-    		if (q.containsKey(s_prime) == false)
-    		{
-    			HashMap<String, Double> action_for_s = new HashMap<String, Double>();
-        		action_for_s.put("None", reward);
-        		q.put(s_prime, action_for_s);
-    		}
-    		else
-    		{
-    			HashMap<String, Double> action_for_s = q.get(s_prime);
-        		action_for_s.put("None", reward);
-        		q.put(s_prime, action_for_s);
-    		}
+    	{   for (String action : percept.actions())
+        	{
+    			putValue(getQ(), s_prime, action, rewardPrime);
+        	}
     	}
     	
     	if (s != null)
     	{
-    		HashMap<String, Double> val =  n.get(s);
-    		
-    		if (null == val) {
-    			val = new HashMap<String, Double>();
-    			val.put(a, 1.0);
-			}
-    		else
-    		{
-    			if (val.containsKey(a) == false)
-    			{
-    				val.put(a, 1.0);
-    			}
-    			else
-    			{
-    				val.put(a, val.get(a) + 1);
-    			}
-    		}
-    		
-    		n.put(s, val);
-    		
-    		double max_a = get_max(s_prime, percept);
-    		
-    		Double s_reward;
-    		if (q.containsKey(s) == false) {
-    			s_reward = 0.0;
-			}
-    		else
-    		{
-    			if (q.get(s).containsKey(a) == false)
-    				s_reward = 0.0;
-    			else
-    			    s_reward = q.get(s).get(a);
-    		}
-    		double Nsa = n.get(s).get(a);
-    		double Al = alpha(Nsa, percept.gamma(), s_reward);
-    		double new_reward = s_reward + Al * (r + (percept.gamma() * max_a) - s_reward);  
-    		if (reward > 0)
-    		{
-    			
-    			System.out.printf("\t\t\t nop %f\n", reward);
-    		}
-    		if (q.containsKey(s) == false)
-    		{
-    			HashMap<String, Double> action_for_s = new HashMap<String, Double>();
-        		action_for_s.put(a, new_reward);
-        		q.put(s, action_for_s);
-    		}
-    		else
-    		{
-    			HashMap<String, Double> action_for_s = q.get(s);
-        		action_for_s.put(a, new_reward);
-        		q.put(s, action_for_s);
-    		}
-    		
+    		addValue(getN(),s,a,1.0);  		
+    		double s_reward = value(getQ(),s ,a);
+    		double Nsa = value(getN(),s,a); 
+    		double maxPrimeReward =  maxValue(s_prime, percept.actions());
+    		double new_reward = s_reward + (1/Nsa) * (r + (Gamma * maxPrimeReward) - s_reward);  
+    		putValue(getQ(),s,a,new_reward);		
     	}
     	
-    	
+    	if (s_prime.isTerminal())
+    	{
+    		s = null;
+		    a = null;
+		    r = Double.NaN;  
+    	}
+    	else
+    	{
 			s = s_prime;
-		    a = myExplorationFunction(s_prime, percept);
-		    r = reward;
-            return a;
+		    a = maxExplorationAction(s_prime, percept.actions());
+		    r = rewardPrime;      
+    	}
+    	
+    	return a;
     }
 
 }
